@@ -5,9 +5,12 @@ use App\Services\User\BusinessServices\MembershipTierService;
 
 return [
     'foundation' => [
-        'base_url' => env('USER_FOUNDATION_BASE_URL', ''),
-        'me_endpoint' => env('USER_FOUNDATION_ME_ENDPOINT', '/api/user/me'),
-        'timeout_seconds' => (int) env('USER_FOUNDATION_TIMEOUT_SECONDS', 3),
+        'base_url' => env('USER_CENTER_BASE_URL', ''),
+        'me_endpoint' => env('USER_CENTER_ME_ENDPOINT', '/api/user/me'),
+        'login_endpoint' => env('USER_CENTER_LOGIN_ENDPOINT', '/api/user/login'),
+        'refresh_endpoint' => env('USER_CENTER_REFRESH_ENDPOINT', '/api/user/login'),
+        'timeout_seconds' => (int) env('USER_CENTER_TIMEOUT_SECONDS', 3),
+        'unauthorized_code' => (int) env('USER_CENTER_UNAUTHORIZED_CODE', 40101),
     ],
 
     'business_services' => [

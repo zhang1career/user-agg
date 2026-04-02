@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return response()->json([
-        'service' => 'file-io',
+        'service' => 'user-agg',
         'status' => 'ok',
     ]);
 });

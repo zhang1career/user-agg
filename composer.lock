@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bb3c7afa718000b9f5f3ef49f2c250bf",
+    "content-hash": "fbd1eb246bc13aa7f8bf57ae74adb355",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -6266,11 +6266,17 @@
         },
         {
             "name": "zhang1career/paganini",
-            "version": "dev-feature-user-20260401",
+            "version": "v0.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zhang1career/paganini.git",
+                "reference": "7532befe0df5ebfcb2dbe7fd1bb4adef7e104c37"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/mini/Projects/startups/paganini",
-                "reference": "81280d17d5ea2a27199a56119c20ab19972b8dd6"
+                "type": "zip",
+                "url": "https://api.github.com/repos/zhang1career/paganini/zipball/7532befe0df5ebfcb2dbe7fd1bb4adef7e104c37",
+                "reference": "7532befe0df5ebfcb2dbe7fd1bb4adef7e104c37",
+                "shasum": ""
             },
             "require": {
                 "php": "^8.2"
@@ -6304,10 +6310,11 @@
                 "utilities",
                 "utils"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/zhang1career/paganini/tree/v0.2.0",
+                "issues": "https://github.com/zhang1career/paganini/issues"
+            },
+            "time": "2026-04-01T12:16:51+00:00"
         }
     ],
     "packages-dev": [
@@ -8688,9 +8695,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "zhang1career/paganini": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

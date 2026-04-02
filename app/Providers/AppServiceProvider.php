@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Queue\Connectors\DatabaseMillisConnector;
 use App\Queue\Failed\DatabaseUuidFailedJobProviderMillis;
 use Illuminate\Support\ServiceProvider;
-use Paganini\UserAggregation\Registry\BusinessServiceRegistry;
+use Paganini\Capability\ProviderRegistry;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(BusinessServiceRegistry::class, function ($app) {
+        $this->app->singleton(ProviderRegistry::class, function ($app) {
             $serviceDefs = (array) config('user_agg.business_services', []);
             $serviceClasses = [];
             foreach ($serviceDefs as $def) {
@@ -28,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $services = array_map(fn (string $class) => $app->make($class), $serviceClasses);
-            return new BusinessServiceRegistry($services);
+
+            return new ProviderRegistry($services);
         });
     }
 
@@ -52,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
                     $config['table']
                 );
             }
+
             return $failer;
         });
     }

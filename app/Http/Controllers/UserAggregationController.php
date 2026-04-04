@@ -37,6 +37,11 @@ class UserAggregationController extends Controller
             ), 401);
         }
 
+        $this->logHandledApiRequest($request, [
+            'handler' => 'me',
+            'foundation_user_id' => $baseUser['id'] ?? $baseUser['user_id'] ?? null,
+        ]);
+
         $context = [
             'path' => $request->path(),
             'query' => $request->query(),

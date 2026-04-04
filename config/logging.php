@@ -1,9 +1,20 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
+
+$defaultFileLogFormatter = [
+    'formatter' => LineFormatter::class,
+    'formatter_with' => [
+        'format' => "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
+        'dateFormat' => 'Y-m-d H:i:s',
+        'allowInlineLineBreaks' => false,
+        'ignoreEmptyContextAndExtra' => true,
+    ],
+];
 
 return [
 
@@ -58,20 +69,20 @@ return [
             'ignore_exceptions' => false,
         ],
 
-        'single' => [
+        'single' => array_merge([
             'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
+            'path' => '/var/log/project/user-agg/app.log',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
-        ],
+        ], $defaultFileLogFormatter),
 
-        'daily' => [
+        'daily' => array_merge([
             'driver' => 'daily',
-            'path' => storage_path('logs/laravel.log'),
+            'path' => '/var/log/project/user-agg/app.log',
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'days' => env('LOG_DAILY_DAYS', 7),
             'replace_placeholders' => true,
-        ],
+        ], $defaultFileLogFormatter),
 
         'slack' => [
             'driver' => 'slack',
@@ -89,7 +100,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],

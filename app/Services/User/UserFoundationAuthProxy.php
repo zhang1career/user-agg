@@ -10,6 +10,22 @@ use RuntimeException;
 
 class UserFoundationAuthProxy
 {
+    public function forwardRegister(Request $request): Response
+    {
+        return $this->forwardPost(
+            $request,
+            (string)config('user_agg.foundation.register_endpoint', '/api/user/register')
+        );
+    }
+
+    public function forwardRegisterVerify(Request $request): Response
+    {
+        return $this->forwardPost(
+            $request,
+            (string)config('user_agg.foundation.register_verify_endpoint', '/api/user/register/verify')
+        );
+    }
+
     public function forwardLogin(Request $request): Response
     {
         return $this->forwardPost(
@@ -23,6 +39,22 @@ class UserFoundationAuthProxy
         return $this->forwardPut(
             $request,
             (string)config('user_agg.foundation.refresh_endpoint', '/api/user/login')
+        );
+    }
+
+    public function forwardResetPasswordRequest(Request $request): Response
+    {
+        return $this->forwardPost(
+            $request,
+            (string)config('user_agg.foundation.reset_password_request_endpoint', '/api/user/reset-password')
+        );
+    }
+
+    public function forwardResetPasswordVerify(Request $request): Response
+    {
+        return $this->forwardPost(
+            $request,
+            (string)config('user_agg.foundation.reset_password_verify_endpoint', '/api/user/reset-password/verify')
         );
     }
 

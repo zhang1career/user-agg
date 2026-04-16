@@ -15,7 +15,7 @@ return [
     ],
 
     'foundation' => [
-        'base_url' => env('USER_CENTER_BASE_URL', ''),
+        'base_url' => env('API_GATEWAY_BASE_URL', ''),
         'me_endpoint' => env('USER_CENTER_ME_ENDPOINT', '/api/user/me'),
         'login_endpoint' => env('USER_CENTER_LOGIN_ENDPOINT', '/api/user/login'),
         'refresh_endpoint' => env('USER_CENTER_REFRESH_ENDPOINT', '/api/user/login'),

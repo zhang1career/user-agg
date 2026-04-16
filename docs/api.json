@@ -1,0 +1,641 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User Aggregation Middleware API",
+    "description": "用户信息聚合中间件：文件上传与元数据、用户聚合（基础服务 + 多业务插件）。统一响应体为 `{ data, code, msg }`；HTTP 状态码多为 200/201，业务语义见 `code` 字段。",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "相对网关根路径（实际前缀通常为 /api）"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Files",
+      "description": "对象存储文件上传与状态查询"
+    },
+    {
+      "name": "User",
+      "description": "用户聚合（下游基础服务 + 业务服务）"
+    }
+  ],
+  "paths": {
+    "/api/files": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "上传文件",
+        "description": "multipart 上传；成功后入队转码（视频等）。最大约 100MB（max:102400 KB）。",
+        "operationId": "uploadFile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "待上传文件"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeFileUpload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务器错误（如对象存储失败）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "查询文件元数据",
+        "operationId": "getFile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "媒体文件 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeFileDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在"
+          },
+          "500": {
+            "description": "服务器错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}/download": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "下载 / 跳转 CDN",
+        "description": "若文件已就绪且有 CDN URL，返回 302 重定向至 CDN；否则返回 202 + JSON 提示处理中。",
+        "operationId": "downloadFile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向到 CDN 地址",
+            "headers": {
+              "Location": {
+                "description": "CDN 或最终资源 URL",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "仍在处理中",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                },
+                "example": {
+                  "data": "",
+                  "code": 1,
+                  "msg": "File is still processing."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在"
+          }
+        }
+      }
+    },
+    "/api/user/register": {
+      "post": {
+        "tags": ["User"],
+        "summary": "用户注册（请求验证码）",
+        "description": "无状态转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REGISTER_ENDPOINT`，响应与下游 app_user `/register` 一致。",
+        "operationId": "proxyUserRegister",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "下游响应原文（通常含 data.event_id）" },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/register/verify": {
+      "post": {
+        "tags": ["User"],
+        "summary": "用户注册验证身份（提交验证码）",
+        "description": "无状态转发至 `USER_CENTER_REGISTER_VERIFY_ENDPOINT`，响应与下游 app_user `/register/verify` 一致。",
+        "operationId": "proxyUserRegisterVerify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["event_id", "code"],
+                "properties": {
+                  "event_id": { "type": "integer" },
+                  "code": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "下游响应原文（通常含 access_token/refresh_token）" },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/login": {
+      "post": {
+        "tags": ["User"],
+        "summary": "登录（转发基础用户中心）",
+        "description": "无状态：将请求体与允许的头转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_LOGIN_ENDPOINT`。HTTP 状态码与 JSON 体与下游 serv-fd 用户中心一致（含 access_token 等字段名以实际为准），由前端保存；本服务不存会话。",
+        "operationId": "proxyUserLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "下游响应原文"
+          },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["User"],
+        "summary": "刷新令牌（转发基础用户中心）",
+        "description": "与 serv-fd `app_user.LoginView.put` 一致：同路径 `PUT /api/user/login`，JSON 体含 `refresh_token`。聚合层转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REFRESH_ENDPOINT`（默认与登录路径相同 `/api/user/login`）。",
+        "operationId": "proxyUserLoginRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refresh_token"],
+                "properties": {
+                  "refresh_token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "下游响应原文（含新 access_token 等，以实际为准）"
+          },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/me": {
+      "get": {
+        "tags": ["User"],
+        "summary": "聚合当前用户",
+        "description": "调用基础服务 `/api/user/me` 等价路径拉取用户，再按配置执行业务插件聚合。须先通过 `POST /api/user/login` 取得 access_token，请求头携带 `Authorization: Bearer <access_token>`（Bearer 与 token 之间一个空格）。部分业务失败时 `code` 可为配置的 `USER_AGG_PARTIAL_FAILURE_CODE`（默认 20601），`data.meta` 标明降级信息。",
+        "operationId": "getAggregatedMe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Trace-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "可选，透传至下游"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（`code` 为 0 表示全部成功；非 0 表示聚合层约定的部分失败等业务码，仍可能 HTTP 200）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeAggregatedUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未携带 Bearer、token 无效或下游要求登录（业务码默认 `USER_CENTER_UNAUTHORIZED_CODE`，如 40101）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "基础服务不可用或配置错误等",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/reset-password/request": {
+      "post": {
+        "tags": ["User"],
+        "summary": "重置密码（请求验证码）",
+        "description": "无状态转发至 `USER_CENTER_RESET_PASSWORD_REQUEST_ENDPOINT`，响应与下游 app_user `/reset-password/request` 一致。",
+        "operationId": "proxyUserResetPasswordRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "下游响应原文（通常含 sent/event_id）" },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/reset-password/verify": {
+      "post": {
+        "tags": ["User"],
+        "summary": "重置密码验证身份（提交验证码+新密码）",
+        "description": "无状态转发至 `USER_CENTER_RESET_PASSWORD_VERIFY_ENDPOINT`，响应与下游 app_user `/reset-password/verify` 一致。",
+        "operationId": "proxyUserResetPasswordVerify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "下游响应原文" },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "与下游 app_user 一致的 Access Token（Authorization: Bearer <token>）"
+      }
+    },
+    "schemas": {
+      "ApiEnvelope": {
+        "type": "object",
+        "required": ["data", "code", "msg"],
+        "properties": {
+          "data": {
+            "description": "业务载荷；成功时多为对象，错误时可能为空字符串"
+          },
+          "code": {
+            "type": "integer",
+            "description": "业务码，0 表示成功"
+          },
+          "msg": {
+            "type": "string",
+            "description": "提示信息"
+          }
+        }
+      },
+      "EnvelopeError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiEnvelope"
+          },
+          {
+            "type": "object",
+            "example": {
+              "data": "",
+              "code": 1,
+              "msg": "error message"
+            }
+          }
+        ]
+      },
+      "FileUploadData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1=uploaded 等，见 MediaFile 常量"
+          },
+          "cdn_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "ready": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EnvelopeFileUpload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/FileUploadData"
+              },
+              "code": {
+                "type": "integer",
+                "enum": [0]
+              }
+            }
+          }
+        ]
+      },
+      "FileDetailData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "original_name": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "integer"
+          },
+          "mime_type_name": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "cdn_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "ct": {
+            "type": "integer",
+            "format": "int64",
+            "description": "创建时间（毫秒时间戳）"
+          },
+          "ut": {
+            "type": "integer",
+            "format": "int64",
+            "description": "更新时间（毫秒时间戳）"
+          }
+        }
+      },
+      "EnvelopeFileDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/FileDetailData"
+              },
+              "code": {
+                "type": "integer",
+                "enum": [0]
+              }
+            }
+          }
+        ]
+      },
+      "AggregationMeta": {
+        "type": "object",
+        "properties": {
+          "degraded": {
+            "type": "boolean"
+          },
+          "degraded_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keys_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "degrade_strategy": {
+            "type": "string",
+            "description": "mask_null | mask_error_object | fail_fast"
+          },
+          "execution_mode": {
+            "type": "string",
+            "description": "serial | parallel"
+          }
+        }
+      },
+      "AggregatedUserData": {
+        "type": "object",
+        "description": "user 为基础服务 data 解包后的对象；biz 按 provider key 分区，值为各业务 data 或降级占位",
+        "properties": {
+          "user": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "app_user 当前用户扁平对象（字段以实际下游为准）"
+          },
+          "biz": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "例如 account_profile、membership_tier 等"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AggregationMeta"
+          }
+        }
+      },
+      "EnvelopeAggregatedUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AggregatedUserData"
+              },
+              "code": {
+                "type": "integer",
+                "description": "0 全成功；部分失败时为 USER_AGG_PARTIAL_FAILURE_CODE 等"
+              },
+              "msg": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

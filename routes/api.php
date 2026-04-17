@@ -14,8 +14,7 @@ Route::prefix('')->middleware([])->group(function () {
     Route::post('user/register/verify', [UserAuthProxyController::class, 'registerVerify']);
     Route::post('user/login', [UserAuthProxyController::class, 'login']);
     Route::put('user/login', [UserAuthProxyController::class, 'refresh']);
-    Route::post('user/reset-password', [UserAuthProxyController::class, 'resetPasswordRequest']);
-    Route::post('user/reset-password/request', [UserAuthProxyController::class, 'resetPasswordRequest']);
+    Route::post('user/reset-password', [UserAuthProxyController::class, 'resetPassword']);
     Route::post('user/reset-password/verify', [UserAuthProxyController::class, 'resetPasswordVerify']);
     Route::get('user/me', [UserAggregationController::class, 'me']);
 });

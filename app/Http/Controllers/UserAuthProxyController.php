@@ -42,7 +42,7 @@ class UserAuthProxyController extends Controller
         return $proxy->forwardRefresh($request);
     }
 
-    public function resetPasswordRequest(Request $request, UserFoundationAuthProxy $proxy): Response
+    public function resetPassword(Request $request, UserFoundationAuthProxy $proxy): Response
     {
         $this->logHandledApiRequest($request, ['handler' => __FUNCTION__]);
 

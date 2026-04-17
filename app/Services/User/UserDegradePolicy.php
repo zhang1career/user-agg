@@ -2,7 +2,7 @@
 
 namespace App\Services\User;
 
-use Paganini\UserAggregation\Policies\DefaultDegradePolicy;
+use Paganini\Aggregation\Policies\DefaultDegradePolicy;
 
 class UserDegradePolicy extends DefaultDegradePolicy
 {

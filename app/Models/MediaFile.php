@@ -27,6 +27,8 @@ class MediaFile extends Model
     public $timestamps = false;
     protected $keyType = 'int';
 
+    protected $table = 'media_file';
+
     protected $fillable = [
         'original_name',
         'mime_type',

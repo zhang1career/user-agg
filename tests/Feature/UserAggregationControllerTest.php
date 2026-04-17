@@ -3,11 +3,20 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
-use Paganini\UserAggregation\Registry\BusinessServiceRegistry;
+use Paganini\Capability\ProviderRegistry;
 use Tests\TestCase;
 
 class UserAggregationControllerTest extends TestCase
 {
+    public function test_me_returns_401_when_authorization_header_missing(): void
+    {
+        $response = $this->getJson('/api/user/me');
+
+        $response->assertStatus(401)
+            ->assertJsonPath('code', 40101);
+        $this->assertStringContainsString('Authorization required', (string) $response->json('msg'));
+    }
+
     public function test_me_returns_aggregated_user_and_business_data(): void
     {
         config()->set('user_agg.foundation.base_url', 'http://foundation.local');
@@ -23,7 +32,7 @@ class UserAggregationControllerTest extends TestCase
         config()->set('user_agg.execution.mode', 'serial');
         config()->set('user_agg.degrade.strategy', 'mask_null');
 
-        $this->app->forgetInstance(BusinessServiceRegistry::class);
+        $this->app->forgetInstance(ProviderRegistry::class);
 
         Http::fake([
             'http://foundation.local/api/user/me' => Http::response([
@@ -72,7 +81,7 @@ class UserAggregationControllerTest extends TestCase
         config()->set('user_agg.degrade.strategy', 'mask_error_object');
         config()->set('user_agg.degrade.partial_failure_code', 20601);
 
-        $this->app->forgetInstance(BusinessServiceRegistry::class);
+        $this->app->forgetInstance(ProviderRegistry::class);
 
         Http::fake([
             'http://foundation.local/api/user/me' => Http::response([
@@ -92,12 +101,14 @@ class UserAggregationControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->getJson('/api/user/me');
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer token-abc',
+        ])->getJson('/api/user/me');
 
         $response->assertOk()
             ->assertJsonPath('code', 20601)
             ->assertJsonPath('data.meta.degraded', true)
-            ->assertJsonPath('data.meta.degraded_services.0', 'membership_tier')
+            ->assertJsonPath('data.meta.degraded_keys.0', 'membership_tier')
             ->assertJsonPath('data.biz.account_profile.nickname', 'mini-dev')
             ->assertJsonPath('data.biz.membership_tier.degraded', true);
     }

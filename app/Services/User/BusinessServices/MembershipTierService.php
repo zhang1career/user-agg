@@ -4,7 +4,7 @@ namespace App\Services\User\BusinessServices;
 
 class MembershipTierService extends HttpBusinessServiceAdapter
 {
-    public function serviceKey(): string
+    public function key(): string
     {
         return 'membership_tier';
     }
@@ -14,7 +14,7 @@ class MembershipTierService extends HttpBusinessServiceAdapter
         return 'membership_tier';
     }
 
-    protected function endpoint(array $baseUser, array $context): string
+    protected function endpoint(array $subject, array $context): string
     {
         return (string) config('user_agg.downstream.membership_tier.endpoint', '/api/user/membership');
     }

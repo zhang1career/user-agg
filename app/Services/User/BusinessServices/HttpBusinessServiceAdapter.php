@@ -4,8 +4,8 @@ namespace App\Services\User\BusinessServices;
 
 use App\Contracts\UserBusinessServiceContract;
 use Illuminate\Support\Facades\Http;
-use Paganini\UserAggregation\Exceptions\DownstreamServiceException;
-use Paganini\UserAggregation\Support\DownstreamPayload;
+use Paganini\Aggregation\Exceptions\DownstreamServiceException;
+use Paganini\Aggregation\Support\DownstreamPayload;
 
 abstract class HttpBusinessServiceAdapter implements UserBusinessServiceContract
 {
@@ -14,37 +14,37 @@ abstract class HttpBusinessServiceAdapter implements UserBusinessServiceContract
         return true;
     }
 
-    final public function fetch(array $baseUser, array $context): array
+    final public function fetch(array $subject, array $context): array
     {
         $response = Http::timeout($this->timeoutSeconds())
             ->acceptJson()
-            ->withHeaders($this->headers($baseUser, $context))
-            ->get($this->baseUrl() . $this->endpoint($baseUser, $context), $this->query($baseUser, $context));
+            ->withHeaders($this->headers($subject, $context))
+            ->get($this->baseUrl() . $this->endpoint($subject, $context), $this->query($subject, $context));
 
         if (!$response->successful()) {
             throw new DownstreamServiceException(
-                sprintf('Downstream service %s failed with status %d.', $this->serviceKey(), $response->status())
+                sprintf('Downstream service %s failed with status %d.', $this->key(), $response->status())
             );
         }
 
-        $data = DownstreamPayload::extractData($response->json(), $this->serviceKey());
+        $data = DownstreamPayload::extractData($response->json(), $this->key());
 
-        return $this->mapData($data, $baseUser, $context);
+        return $this->mapData($data, $subject, $context);
     }
 
     abstract protected function configKey(): string;
 
-    protected function endpoint(array $baseUser, array $context): string
+    protected function endpoint(array $subject, array $context): string
     {
         return '/api/user/profile';
     }
 
-    protected function query(array $baseUser, array $context): array
+    protected function query(array $subject, array $context): array
     {
         return [];
     }
 
-    protected function headers(array $baseUser, array $context): array
+    protected function headers(array $subject, array $context): array
     {
         $headers = [];
         if (!empty($context['bearer_token'])) {
@@ -53,6 +53,7 @@ abstract class HttpBusinessServiceAdapter implements UserBusinessServiceContract
         if (!empty($context['trace_id'])) {
             $headers['X-Trace-Id'] = $context['trace_id'];
         }
+
         return $headers;
     }
 
@@ -66,13 +67,14 @@ abstract class HttpBusinessServiceAdapter implements UserBusinessServiceContract
         $baseUrl = rtrim((string) config("user_agg.downstream.{$this->configKey()}.base_url", ''), '/');
         if ($baseUrl === '') {
             throw new DownstreamServiceException(
-                sprintf('Missing base_url for business service %s.', $this->serviceKey())
+                sprintf('Missing base_url for business service %s.', $this->key())
             );
         }
+
         return $baseUrl;
     }
 
-    protected function mapData(array $data, array $baseUser, array $context): array
+    protected function mapData(array $data, array $subject, array $context): array
     {
         return $data;
     }

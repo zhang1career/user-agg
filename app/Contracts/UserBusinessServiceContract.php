@@ -2,16 +2,9 @@
 
 namespace App\Contracts;
 
-use Paganini\UserAggregation\Contracts\BusinessServiceContract;
+use Paganini\Capability\ProviderContract;
 
-interface UserBusinessServiceContract extends BusinessServiceContract
+/** User-domain capability providers for the aggregation middleware. */
+interface UserBusinessServiceContract extends ProviderContract
 {
-    public function serviceKey(): string;
-
-    public function supports(array $context): bool;
-
-    /**
-     * Return normalized business data object (already unwrapped from downstream `data` envelope).
-     */
-    public function fetch(array $baseUser, array $context): array;
 }

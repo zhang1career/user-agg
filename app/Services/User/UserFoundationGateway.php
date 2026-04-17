@@ -2,16 +2,23 @@
 
 namespace App\Services\User;
 
+use App\Exceptions\FoundationAuthRequiredException;
+use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Paganini\UserAggregation\Support\DownstreamPayload;
+use Paganini\Aggregation\Exceptions\DownstreamServiceException;
+use Paganini\Aggregation\Support\DownstreamPayload;
 use RuntimeException;
 
 class UserFoundationGateway
 {
+    public function __construct(
+        private readonly ResolvedFoundationBaseUrl $resolvedFoundationBaseUrl,
+    ) {}
+
     public function fetchCurrentUser(Request $request): array
     {
-        $baseUrl = rtrim((string) config('user_agg.foundation.base_url'), '/');
+        $baseUrl = $this->resolvedFoundationBaseUrl->resolve();
         if ($baseUrl === '') {
             throw new RuntimeException('Missing user foundation base_url configuration.');
         }
@@ -23,12 +30,35 @@ class UserFoundationGateway
         $response = Http::timeout($timeout)
             ->withToken($token)
             ->acceptJson()
-            ->get($baseUrl . $endpoint);
+            ->get($baseUrl.$endpoint);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
+            if ($response->status() === 401) {
+                throw $this->authRequiredFromHttpResponse($response);
+            }
             throw new RuntimeException('Failed to fetch base user info from foundation service.');
         }
 
-        return DownstreamPayload::extractData($response->json(), 'foundation user service');
+        try {
+            return DownstreamPayload::extractData($response->json(), 'foundation user service');
+        } catch (DownstreamServiceException $e) {
+            if (str_contains(strtolower($e->getMessage()), 'login required')) {
+                throw new FoundationAuthRequiredException($e->getMessage(), 0, $e);
+            }
+            throw $e;
+        }
+    }
+
+    private function authRequiredFromHttpResponse(ClientResponse $response): FoundationAuthRequiredException
+    {
+        $json = $response->json();
+        $detail = 'login required';
+        if (is_array($json) && isset($json['message']) && is_string($json['message']) && $json['message'] !== '') {
+            $detail = $json['message'];
+        }
+
+        return new FoundationAuthRequiredException(
+            'Downstream error from foundation user service: '.$detail
+        );
     }
 }

@@ -4,7 +4,7 @@ namespace App\Services\User\BusinessServices;
 
 class AccountProfileService extends HttpBusinessServiceAdapter
 {
-    public function serviceKey(): string
+    public function key(): string
     {
         return 'account_profile';
     }
@@ -14,7 +14,7 @@ class AccountProfileService extends HttpBusinessServiceAdapter
         return 'account_profile';
     }
 
-    protected function endpoint(array $baseUser, array $context): string
+    protected function endpoint(array $subject, array $context): string
     {
         return (string) config('user_agg.downstream.account_profile.endpoint', '/api/user/profile');
     }

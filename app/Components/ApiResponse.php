@@ -10,11 +10,13 @@ class ApiResponse
      * @param string $msg
      * @return array
      */
-    public static function ok($data = null, string $msg = '') : array {
+    public static function ok($data = null, string $msg = '', string $reqId = ''): array
+    {
         return [
             'data' => $data ?? '',
-            'code'  => 0,
-            'msg'  => $msg
+            'errorCode' => 0,
+            'message' => $msg,
+            '_req_id' => $reqId,
         ];
     }
 
@@ -23,23 +25,29 @@ class ApiResponse
      * @param string $msg
      * @return array
      */
-    public static function error(int $code, string $msg) : array {
+    public static function error(int $code, string $msg, string $reqId = ''): array
+    {
         return [
             'data' => '',
-            'code'  => $code,
-            'msg'  => $msg
+            'errorCode' => $code,
+            'message' => $msg,
+            '_req_id' => $reqId,
         ];
     }
 
     /**
      * @param mixed $data
+     * @param int $code
+     * @param string $msg
+     * @return array
      */
-    public static function code($data, int $code, string $msg = ''): array
+    public static function code(mixed $data, int $code, string $msg = '', string $reqId = ''): array
     {
         return [
             'data' => $data ?? '',
-            'code' => $code,
-            'msg' => $msg,
+            'errorCode' => $code,
+            'message' => $msg,
+            '_req_id' => $reqId,
         ];
     }
 }

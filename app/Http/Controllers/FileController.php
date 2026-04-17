@@ -20,6 +20,8 @@ class FileController extends Controller
             'file' => ['required', 'file', 'max:102400'],
         ]);
 
+        $this->logHandledApiRequest($request, ['handler' => __FUNCTION__]);
+
         $uploadedFile = $validated['file'];
         $extension = $uploadedFile->getClientOriginalExtension() ?: $uploadedFile->extension() ?: 'bin';
         $mimeType = $uploadedFile->getClientMimeType() ?: 'application/octet-stream';
@@ -58,8 +60,10 @@ class FileController extends Controller
         ]), 201);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
+        $this->logHandledApiRequest($request, ['handler' => __FUNCTION__, 'id' => $id]);
+
         $mediaFile = MediaFile::query()->findOrFail($id);
 
         return response()->json(ApiResponse::ok([
@@ -77,8 +81,10 @@ class FileController extends Controller
         ]));
     }
 
-    public function download(string $id): JsonResponse|RedirectResponse
+    public function download(Request $request, string $id): JsonResponse|RedirectResponse
     {
+        $this->logHandledApiRequest($request, ['handler' => __FUNCTION__, 'id' => $id]);
+
         $mediaFile = MediaFile::query()->findOrFail($id);
         if (!$mediaFile->isReady() || !$mediaFile->cdn_url) {
             return response()->json(ApiResponse::error(1, 'File is still processing.'), 202);

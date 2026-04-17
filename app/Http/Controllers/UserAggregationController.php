@@ -3,23 +3,44 @@
 namespace App\Http\Controllers;
 
 use App\Components\ApiResponse;
+use App\Exceptions\FoundationAuthRequiredException;
 use App\Services\User\UserAggregationExecutor;
 use App\Services\User\UserDegradePolicy;
 use App\Services\User\UserFoundationGateway;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Paganini\UserAggregation\Registry\BusinessServiceRegistry;
+use Paganini\Capability\ProviderRegistry;
 
 class UserAggregationController extends Controller
 {
     public function me(
         Request $request,
         UserFoundationGateway $foundationGateway,
-        BusinessServiceRegistry $registry,
+        ProviderRegistry $registry,
         UserAggregationExecutor $executor,
         UserDegradePolicy $degradePolicy
     ): JsonResponse {
-        $baseUser = $foundationGateway->fetchCurrentUser($request);
+        $token = $request->bearerToken();
+        if ($token === null || trim($token) === '') {
+            return response()->json(ApiResponse::error(
+                (int) config('user_agg.foundation.unauthorized_code', 40101),
+                'Authorization required. Call POST /api/user/login first, store access_token on the client, then call this endpoint with header: Authorization: Bearer <access_token> (single space after Bearer).'
+            ), 401);
+        }
+
+        try {
+            $baseUser = $foundationGateway->fetchCurrentUser($request);
+        } catch (FoundationAuthRequiredException $e) {
+            return response()->json(ApiResponse::error(
+                (int) config('user_agg.foundation.unauthorized_code', 40101),
+                $e->getMessage()
+            ), 401);
+        }
+
+        $this->logHandledApiRequest($request, [
+            'handler' => 'me',
+            'foundation_user_id' => $baseUser['id'] ?? $baseUser['user_id'] ?? null,
+        ]);
 
         $context = [
             'path' => $request->path(),
@@ -49,8 +70,8 @@ class UserAggregationController extends Controller
             'biz' => $result->biz,
             'meta' => [
                 'degraded' => $hasDegraded,
-                'degraded_services' => $result->degradedServices,
-                'services_used' => $result->servicesUsed,
+                'degraded_keys' => $result->degradedKeys,
+                'keys_used' => $result->keysUsed,
                 'degrade_strategy' => $degradePolicy->strategy(),
                 'execution_mode' => (string) config('user_agg.execution.mode', 'serial'),
             ],

@@ -3,15 +3,24 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/zhang1career/paganini.git"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "ext-curl": "*",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.0",
-        "zhang1career/paganini": "dev-feature-user-20260401@dev"
+        "zhang1career/paganini": "^0.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -70,14 +79,5 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "path",
-            "url": "/Users/mini/Projects/startups/paganini",
-            "options": {
-                "symlink": true
-            }
-        }
-    ]
+    "prefer-stable": true
 }

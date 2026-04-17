@@ -10,11 +10,15 @@ use RuntimeException;
 
 class UserFoundationAuthProxy
 {
+    public function __construct(
+        private readonly ResolvedFoundationBaseUrl $resolvedFoundationBaseUrl,
+    ) {}
+
     public function forwardRegister(Request $request): Response
     {
         return $this->forwardPost(
             $request,
-            (string)config('user_agg.foundation.register_endpoint', '/api/user/register')
+            (string) config('user_agg.foundation.register_endpoint', '/api/user/register')
         );
     }
 
@@ -22,7 +26,7 @@ class UserFoundationAuthProxy
     {
         return $this->forwardPost(
             $request,
-            (string)config('user_agg.foundation.register_verify_endpoint', '/api/user/register/verify')
+            (string) config('user_agg.foundation.register_verify_endpoint', '/api/user/register/verify')
         );
     }
 
@@ -30,7 +34,7 @@ class UserFoundationAuthProxy
     {
         return $this->forwardPost(
             $request,
-            (string)config('user_agg.foundation.login_endpoint', '/api/user/login')
+            (string) config('user_agg.foundation.login_endpoint', '/api/user/login')
         );
     }
 
@@ -38,7 +42,7 @@ class UserFoundationAuthProxy
     {
         return $this->forwardPut(
             $request,
-            (string)config('user_agg.foundation.refresh_endpoint', '/api/user/login')
+            (string) config('user_agg.foundation.refresh_endpoint', '/api/user/login')
         );
     }
 
@@ -46,7 +50,7 @@ class UserFoundationAuthProxy
     {
         return $this->forwardPost(
             $request,
-            (string)config('user_agg.foundation.reset_password_request_endpoint', '/api/user/reset-password')
+            (string) config('user_agg.foundation.reset_password_request_endpoint', '/api/user/reset-password')
         );
     }
 
@@ -54,13 +58,13 @@ class UserFoundationAuthProxy
     {
         return $this->forwardPost(
             $request,
-            (string)config('user_agg.foundation.reset_password_verify_endpoint', '/api/user/reset-password/verify')
+            (string) config('user_agg.foundation.reset_password_verify_endpoint', '/api/user/reset-password/verify')
         );
     }
 
     private function forwardPost(Request $request, string $endpoint): Response
     {
-        list($url, $pending, $content) = $this->extractArgs($endpoint, $request);
+        [$url, $pending, $content] = $this->extractArgs($endpoint, $request);
         if ($content !== '') {
             $response = $pending
                 ->withBody($content, $request->header('Content-Type') ?: 'application/json')
@@ -74,7 +78,7 @@ class UserFoundationAuthProxy
 
     private function forwardPut(Request $request, string $endpoint): Response
     {
-        list($url, $pending, $content) = $this->extractArgs($endpoint, $request);
+        [$url, $pending, $content] = $this->extractArgs($endpoint, $request);
         if ($content !== '') {
             $response = $pending
                 ->withBody($content, $request->header('Content-Type') ?: 'application/json')
@@ -86,25 +90,21 @@ class UserFoundationAuthProxy
         return $this->toRawResponse($response);
     }
 
-    /**
-     * @param string $endpoint
-     * @param Request $request
-     * @return array
-     */
     private function extractArgs(string $endpoint, Request $request): array
     {
-        $baseUrl = rtrim((string)config('user_agg.foundation.base_url'), '/');
+        $baseUrl = $this->resolvedFoundationBaseUrl->resolve();
         if ($baseUrl === '') {
             throw new RuntimeException('Missing user foundation base_url configuration.');
         }
 
-        $timeout = (int)config('user_agg.foundation.timeout_seconds', 3);
-        $url = $baseUrl . $endpoint;
+        $timeout = (int) config('user_agg.foundation.timeout_seconds', 3);
+        $url = $baseUrl.$endpoint;
 
         $pending = Http::timeout($timeout)->withHeaders($this->forwardHeaders($request));
 
         $content = $request->getContent();
-        return array($url, $pending, $content);
+
+        return [$url, $pending, $content];
     }
 
     /**

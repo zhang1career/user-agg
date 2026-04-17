@@ -16,6 +16,15 @@ return [
 
     'foundation' => [
         'base_url' => env('API_GATEWAY_BASE_URL', ''),
+        /*
+         * When `base_url` contains `://{{service_key}}` (Fusio-style), resolve via Redis (paganini).
+         * Plain URLs skip Redis entirely.
+         */
+        'service_discovery' => [
+            'memo_ttl_seconds' => (int) env('API_GATEWAY_SD_MEMO_TTL', 60),
+            'redis_connection' => env('API_GATEWAY_SD_DB_CONN', 'default'),
+            'redis_key_prefix' => env('API_GATEWAY_SD_KEY_PREFIX', ''),
+        ],
         'me_endpoint' => env('USER_CENTER_ME_ENDPOINT', '/api/user/me'),
         'login_endpoint' => env('USER_CENTER_LOGIN_ENDPOINT', '/api/user/login'),
         'refresh_endpoint' => env('USER_CENTER_REFRESH_ENDPOINT', '/api/user/login'),

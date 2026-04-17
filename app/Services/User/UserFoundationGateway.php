@@ -12,9 +12,13 @@ use RuntimeException;
 
 class UserFoundationGateway
 {
+    public function __construct(
+        private readonly ResolvedFoundationBaseUrl $resolvedFoundationBaseUrl,
+    ) {}
+
     public function fetchCurrentUser(Request $request): array
     {
-        $baseUrl = rtrim((string) config('user_agg.foundation.base_url'), '/');
+        $baseUrl = $this->resolvedFoundationBaseUrl->resolve();
         if ($baseUrl === '') {
             throw new RuntimeException('Missing user foundation base_url configuration.');
         }
@@ -26,9 +30,9 @@ class UserFoundationGateway
         $response = Http::timeout($timeout)
             ->withToken($token)
             ->acceptJson()
-            ->get($baseUrl . $endpoint);
+            ->get($baseUrl.$endpoint);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             if ($response->status() === 401) {
                 throw $this->authRequiredFromHttpResponse($response);
             }
@@ -54,7 +58,7 @@ class UserFoundationGateway
         }
 
         return new FoundationAuthRequiredException(
-            'Downstream error from foundation user service: ' . $detail
+            'Downstream error from foundation user service: '.$detail
         );
     }
 }

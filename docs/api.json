@@ -26,37 +26,6 @@
     }
   ],
   "paths": {
-    "/api/openapi.json": {
-      "get": {
-        "tags": ["Meta"],
-        "summary": "获取 OpenAPI 规范",
-        "description": "返回仓库内 `docs/api.json` 的 OpenAPI 3.0 文档对象（与 HTTP 响应体一致）。",
-        "operationId": "getOpenApiDocument",
-        "responses": {
-          "200": {
-            "description": "OpenAPI 根对象",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "OpenAPI 3.0.x document"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "规范文件缺失或无效",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EnvelopeError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/files": {
       "post": {
         "tags": ["Files"],

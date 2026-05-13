@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('openapi.json', OpenApiController::class);
-Route::get('openai.json', OpenApiController::class);
 
 Route::prefix('')->middleware([])->group(function () {
     Route::post('files', [FileController::class, 'upload']);

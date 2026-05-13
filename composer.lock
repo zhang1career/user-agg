@@ -6266,16 +6266,16 @@
         },
         {
             "name": "zhang1career/paganini",
-            "version": "0.4.1",
+            "version": "0.4.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zhang1career/paganini.git",
-                "reference": "79c228b83d93e8071f4053ab409fdcbebea99c91"
+                "reference": "b413deedcd159afc99476b87b178b402b67b9241"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zhang1career/paganini/zipball/79c228b83d93e8071f4053ab409fdcbebea99c91",
-                "reference": "79c228b83d93e8071f4053ab409fdcbebea99c91",
+                "url": "https://api.github.com/repos/zhang1career/paganini/zipball/b413deedcd159afc99476b87b178b402b67b9241",
+                "reference": "b413deedcd159afc99476b87b178b402b67b9241",
                 "shasum": ""
             },
             "require": {
@@ -6317,10 +6317,10 @@
                 "utils"
             ],
             "support": {
-                "source": "https://github.com/zhang1career/paganini/tree/v0.4.1",
+                "source": "https://github.com/zhang1career/paganini/tree/v0.4.2",
                 "issues": "https://github.com/zhang1career/paganini/issues"
             },
-            "time": "2026-04-17T05:37:44+00:00"
+            "time": "2026-04-25T13:09:40+00:00"
         }
     ],
     "packages-dev": [

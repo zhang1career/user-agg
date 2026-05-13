@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "User Aggregation Middleware API",
-    "description": "用户信息聚合中间件：文件上传与元数据、用户聚合（基础服务 + 多业务插件）。统一响应体为 `{ data, code, msg }`；HTTP 状态码多为 200/201，业务语义见 `code` 字段。",
+    "description": "用户信息聚合中间件：文件上传与元数据、用户聚合（基础服务 + 多业务插件）。对外 JSON 见 `/api/*` 与 `/api/openapi.json`（本规范）；`/up` 为健康检查。统一响应体为 `{ data, code, msg }`；HTTP 状态码多为 200/201，业务语义见 `code` 字段。",
     "version": "1.0.0"
   },
   "servers": [
@@ -19,9 +19,44 @@
     {
       "name": "User",
       "description": "用户聚合（下游基础服务 + 业务服务）"
+    },
+    {
+      "name": "Meta",
+      "description": "OpenAPI 规范等元数据"
     }
   ],
   "paths": {
+    "/api/openapi.json": {
+      "get": {
+        "tags": ["Meta"],
+        "summary": "获取 OpenAPI 规范",
+        "description": "返回仓库内 `docs/api.json` 的 OpenAPI 3.0 文档对象（与 HTTP 响应体一致）。",
+        "operationId": "getOpenApiDocument",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 根对象",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "OpenAPI 3.0.x document"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "规范文件缺失或无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/files": {
       "post": {
         "tags": ["Files"],
@@ -178,15 +213,82 @@
     "/api/user/register": {
       "post": {
         "tags": ["User"],
-        "summary": "用户注册（请求验证码）",
-        "description": "无状态转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REGISTER_ENDPOINT`，响应与下游 app_user `/register` 一致。",
+        "summary": "用户注册（请求验证码或 no_verify 直接建号）",
+        "description": "无状态转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REGISTER_ENDPOINT`，与下游 app_user `POST /register` 一致。默认创建事件并下发验证码，返回 `event_id`；`no_verify=1` 时跳过发码、直接建号并返回 `access_token`/`refresh_token`，后续可 `POST /api/user/register/request` 补发验证码，再 `POST /api/user/register/verify` 完成渠道验证。",
         "operationId": "proxyUserRegister",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "required": ["username", "password", "notice_channel", "notice_target"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" },
+                  "email": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "no_verify": {
+                    "type": "integer",
+                    "enum": [0, 1],
+                    "description": "1 跳过验证码直接建号并发 token；0 或不传为需验证注册"
+                  },
+                  "ext": { "type": "object", "additionalProperties": true },
+                  "notice_channel": { "type": "string", "enum": ["email", "sms"] },
+                  "notice_target": { "type": "string" }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password", "notice_channel", "notice_target"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" },
+                  "email": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "ext": { "type": "string", "description": "JSON 字符串" },
+                  "notice_channel": { "type": "string", "enum": ["email", "sms"] },
+                  "notice_target": { "type": "string" },
+                  "avatar": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "下游响应原文：成功时 data 为 event_id 或 LoginTokens（no_verify 时）"
+          },
+          "500": {
+            "description": "配置缺失或转发失败",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/register/request": {
+      "post": {
+        "tags": ["User"],
+        "summary": "注册补发验证码（no_verify 后续）",
+        "description": "无状态转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REGISTER_REQUEST_ENDPOINT`，与下游 app_user `POST /register/request` 一致。请求头须携带 `X-User-Access-Token`（no_verify 注册返回的 access_token）；`notice_target` 须与账号邮箱或手机号一致。返回 `event_id` 后再调 `POST /api/user/register/verify`。",
+        "operationId": "proxyUserRegisterResumeRequest",
+        "security": [{ "UserAccessTokenHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["notice_channel", "notice_target"],
+                "properties": {
+                  "notice_channel": { "type": "string", "enum": ["email", "sms"] },
+                  "notice_target": { "type": "string" }
+                }
               }
             }
           }
@@ -207,10 +309,11 @@
     "/api/user/register/verify": {
       "post": {
         "tags": ["User"],
-        "summary": "用户注册验证身份（提交验证码）",
-        "description": "无状态转发至 `USER_CENTER_REGISTER_VERIFY_ENDPOINT`，响应与下游 app_user `/register/verify` 一致。",
+        "summary": "用户注册（提交验证码）",
+        "description": "无状态转发至 `API_GATEWAY_BASE_URL` + `USER_CENTER_REGISTER_VERIFY_ENDPOINT`，与下游 app_user `POST /register/verify` 一致。事件无 user_id 时创建用户并写注册渠道位；有 user_id 时为 no_verify 续验证，更新 auth_status 并轮换会话令牌。",
         "operationId": "proxyUserRegisterVerify",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -225,7 +328,9 @@
           }
         },
         "responses": {
-          "200": { "description": "下游响应原文（通常含 access_token/refresh_token）" },
+          "200": {
+            "description": "下游响应原文（成功时通常含 access_token、refresh_token、user）"
+          },
           "500": {
             "description": "配置缺失或转发失败",
             "content": {
@@ -362,11 +467,11 @@
         }
       }
     },
-    "/api/user/reset-password/request": {
+    "/api/user/reset-password": {
       "post": {
         "tags": ["User"],
         "summary": "重置密码（请求验证码）",
-        "description": "无状态转发至 `USER_CENTER_RESET_PASSWORD_REQUEST_ENDPOINT`，响应与下游 app_user `/reset-password/request` 一致。",
+        "description": "无状态转发至 `USER_CENTER_RESET_PASSWORD_ENDPOINT`（默认下游 `POST /api/user/reset-password`），请求体与响应与下游一致。",
         "operationId": "proxyUserResetPasswordRequest",
         "requestBody": {
           "content": {
@@ -428,6 +533,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "与下游 app_user 一致的 Access Token（Authorization: Bearer <token>）"
+      },
+      "UserAccessTokenHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-User-Access-Token",
+        "description": "与下游 app_user 一致：登录/注册返回的 access_token 原始 JWT；转发时原样透传该请求头（勿加 Bearer 前缀）。"
       }
     },
     "schemas": {

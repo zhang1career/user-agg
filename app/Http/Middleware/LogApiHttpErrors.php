@@ -6,6 +6,8 @@ use App\Components\ApiResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Paganini\Constants\ResponseConstant;
+use Random\RandomException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -14,11 +16,14 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LogApiHttpErrors
 {
+    /**
+     * @throws RandomException
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
-        if (!$request->is('api/*')) {
+        if (! $request->is('api/*')) {
             return $response;
         }
 
@@ -47,7 +52,7 @@ class LogApiHttpErrors
             $message = (string) config('user_agg.api.normalize_5xx_message', '服务器内部错误');
 
             return response()->json(
-                ApiResponse::error(2, $message, $reqId),
+                ApiResponse::error(ResponseConstant::RET_UNKNOWN, $message, $reqId),
                 $status
             );
         }
@@ -58,7 +63,7 @@ class LogApiHttpErrors
     private function contentPreview(Response $response): string
     {
         $content = $response->getContent();
-        if (!is_string($content)) {
+        if (! is_string($content)) {
             return '';
         }
         if (strlen($content) > 2048) {

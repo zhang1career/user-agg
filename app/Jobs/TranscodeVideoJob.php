@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\MediaFile;
+use App\Repos\MediaFileRepo;
 use App\Services\MediaTranscoder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -14,13 +15,12 @@ class TranscodeVideoJob implements ShouldQueue
 
     public function __construct(
         public int $mediaFileId,
-    ) {
-    }
+    ) {}
 
-    public function handle(MediaTranscoder $transcoder): void
+    public function handle(MediaTranscoder $transcoder, MediaFileRepo $mediaFiles): void
     {
-        $mediaFile = MediaFile::query()->find($this->mediaFileId);
-        if (!$mediaFile) {
+        $mediaFile = $mediaFiles->findById($this->mediaFileId);
+        if (! $mediaFile) {
             return;
         }
 
@@ -39,4 +39,3 @@ class TranscodeVideoJob implements ShouldQueue
         }
     }
 }
-

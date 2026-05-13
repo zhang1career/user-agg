@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\User\BusinessServices;
+namespace App\Services\user\business_services;
 
 use App\Contracts\UserBusinessServiceContract;
 use Illuminate\Support\Facades\Http;

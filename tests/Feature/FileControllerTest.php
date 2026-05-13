@@ -24,7 +24,7 @@ class FileControllerTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('code', 0)
+            ->assertJsonPath('errorCode', 0)
             ->assertJsonPath('data.status', MediaFile::STATUS_UPLOADED);
 
         $record = MediaFile::query()->first();
@@ -51,7 +51,7 @@ class FileControllerTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('code', 0)
+            ->assertJsonPath('errorCode', 0)
             ->assertJsonPath('data.status', MediaFile::STATUS_UPLOADED);
 
         $record = MediaFile::query()->first();
@@ -71,7 +71,7 @@ class FileControllerTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('code', 0)
+            ->assertJsonPath('errorCode', 0)
             ->assertJsonPath('data.status', MediaFile::STATUS_UPLOADED);
 
         $record = MediaFile::query()->first();
@@ -93,7 +93,6 @@ class FileControllerTest extends TestCase
         $response = $this->getJson('/api/files/'.$file->id.'/download');
 
         $response->assertStatus(202)
-            ->assertJsonPath('code', 1);
+            ->assertJsonPath('errorCode', 1);
     }
 }
-

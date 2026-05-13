@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\User;
+namespace App\Services\user;
 
 use Illuminate\Support\Facades\Concurrency;
 use Paganini\Aggregation\DTO\AggregationResult;

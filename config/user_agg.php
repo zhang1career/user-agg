@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\User\BusinessServices\AccountProfileService;
-use App\Services\User\BusinessServices\MembershipTierService;
+use App\Services\user\business_services\AccountProfileService;
+use App\Services\user\business_services\MembershipTierService;
 
 return [
     /*
@@ -29,6 +29,7 @@ return [
         'login_endpoint' => env('USER_CENTER_LOGIN_ENDPOINT', '/api/user/login'),
         'refresh_endpoint' => env('USER_CENTER_REFRESH_ENDPOINT', '/api/user/login'),
         'register_endpoint' => env('USER_CENTER_REGISTER_ENDPOINT', '/api/user/register'),
+        'register_request_endpoint' => env('USER_CENTER_REGISTER_REQUEST_ENDPOINT', '/api/user/register/request'),
         'register_verify_endpoint' => env('USER_CENTER_REGISTER_VERIFY_ENDPOINT', '/api/user/register/verify'),
         'reset_password_request_endpoint' => env('USER_CENTER_RESET_PASSWORD_ENDPOINT', '/api/user/reset-password'),
         'reset_password_verify_endpoint' => env('USER_CENTER_RESET_PASSWORD_VERIFY_ENDPOINT', '/api/user/reset-password/verify'),

@@ -1,19 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
-use App\Infrastructure\ServiceDiscovery\LaravelRedisStringClient;
-use App\Queue\Connectors\DatabaseMillisConnector;
-use App\Queue\Failed\DatabaseUuidFailedJobProviderMillis;
-use App\Services\User\ResolvedFoundationBaseUrl;
+use App\Http\Client\OutboundRequestIdMiddleware;
+use App\Infrastructure\service_discovery\LaravelRedisStringClient;
+use App\Logging\monolog\TodayAppLogHandler;
+use App\Logging\processors\XRequestIdLogProcessor;
+use App\Queue\connectors\DatabaseMillisConnector;
+use App\Queue\failed\DatabaseUuidFailedJobProviderMillis;
+use App\Services\user\ResolvedFoundationBaseUrl;
+use DateTimeZone;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use Monolog\Logger;
+use Monolog\Processor\PsrLogMessageProcessor;
 use Paganini\Capability\ProviderRegistry;
 use Paganini\Memo\ApcuMemoStore;
 use Paganini\Memo\ArrayMemoStore;
 use Paganini\Memo\Memoizer;
 use Paganini\ServiceDiscovery\Contracts\ServiceUriResolverInterface;
 use Paganini\ServiceDiscovery\RedisServiceUriResolver;
+use function function_exists;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,7 +51,7 @@ class AppServiceProvider extends ServiceProvider
             if ($ttl < 0) {
                 $ttl = 0;
             }
-            $store = \function_exists('apcu_fetch') ? new ApcuMemoStore('user_agg.foundation_base') : new ArrayMemoStore;
+            $store = function_exists('apcu_fetch') ? new ApcuMemoStore('user_agg.foundation_base') : new ArrayMemoStore;
 
             return new ResolvedFoundationBaseUrl(
                 $app,
@@ -74,6 +85,34 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Log::extend('app_today', function ($app, array $config) {
+            $handler = new TodayAppLogHandler(
+                $config['path'],
+                (int) ($config['days'] ?? 0),
+                $this->level($config),
+                $config['bubble'] ?? true,
+                $config['permission'] ?? null,
+                $config['locking'] ?? false
+            );
+
+            $processors = [];
+            if ($config['replace_placeholders'] ?? false) {
+                $processors[] = new PsrLogMessageProcessor;
+            }
+            $processors[] = new XRequestIdLogProcessor;
+
+            $tz = new DateTimeZone((string) config('app.timezone'));
+
+            return new Logger(
+                $this->parseChannel($config),
+                [$this->prepareHandler($handler, $config)],
+                $processors,
+                $tz
+            );
+        });
+
+        Http::globalRequestMiddleware([OutboundRequestIdMiddleware::class, 'addHeader']);
+
         // Use custom database queue with ct and millisecond timestamps
         $this->app['queue']->addConnector('database', function () {
             return new DatabaseMillisConnector($this->app['db']);

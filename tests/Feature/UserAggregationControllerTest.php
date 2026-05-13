@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Services\user\business_services\AccountProfileService;
+use App\Services\user\business_services\MembershipTierService;
 use Illuminate\Support\Facades\Http;
 use Paganini\Capability\ProviderRegistry;
 use Tests\TestCase;
@@ -13,8 +15,8 @@ class UserAggregationControllerTest extends TestCase
         $response = $this->getJson('/api/user/me');
 
         $response->assertStatus(401)
-            ->assertJsonPath('code', 40101);
-        $this->assertStringContainsString('Authorization required', (string) $response->json('msg'));
+            ->assertJsonPath('errorCode', 40101);
+        $this->assertStringContainsString('Authorization required', (string) $response->json('message'));
     }
 
     public function test_me_returns_aggregated_user_and_business_data(): void
@@ -22,8 +24,8 @@ class UserAggregationControllerTest extends TestCase
         config()->set('user_agg.foundation.base_url', 'http://foundation.local');
         config()->set('user_agg.foundation.me_endpoint', '/api/user/me');
         config()->set('user_agg.business_services', [
-            ['class' => \App\Services\User\BusinessServices\AccountProfileService::class, 'enabled' => true],
-            ['class' => \App\Services\User\BusinessServices\MembershipTierService::class, 'enabled' => true],
+            ['class' => AccountProfileService::class, 'enabled' => true],
+            ['class' => MembershipTierService::class, 'enabled' => true],
         ]);
         config()->set('user_agg.downstream.account_profile.base_url', 'http://biz.local');
         config()->set('user_agg.downstream.account_profile.endpoint', '/api/user/profile');
@@ -58,7 +60,7 @@ class UserAggregationControllerTest extends TestCase
         ])->getJson('/api/user/me');
 
         $response->assertOk()
-            ->assertJsonPath('code', 0)
+            ->assertJsonPath('errorCode', 0)
             ->assertJsonPath('data.user.id', 101)
             ->assertJsonPath('data.biz.account_profile.nickname', 'mini-dev')
             ->assertJsonPath('data.biz.membership_tier.tier', 'gold')
@@ -70,8 +72,8 @@ class UserAggregationControllerTest extends TestCase
         config()->set('user_agg.foundation.base_url', 'http://foundation.local');
         config()->set('user_agg.foundation.me_endpoint', '/api/user/me');
         config()->set('user_agg.business_services', [
-            ['class' => \App\Services\User\BusinessServices\AccountProfileService::class, 'enabled' => true],
-            ['class' => \App\Services\User\BusinessServices\MembershipTierService::class, 'enabled' => true],
+            ['class' => AccountProfileService::class, 'enabled' => true],
+            ['class' => MembershipTierService::class, 'enabled' => true],
         ]);
         config()->set('user_agg.downstream.account_profile.base_url', 'http://biz.local');
         config()->set('user_agg.downstream.account_profile.endpoint', '/api/user/profile');
@@ -106,7 +108,7 @@ class UserAggregationControllerTest extends TestCase
         ])->getJson('/api/user/me');
 
         $response->assertOk()
-            ->assertJsonPath('code', 20601)
+            ->assertJsonPath('errorCode', 20601)
             ->assertJsonPath('data.meta.degraded', true)
             ->assertJsonPath('data.meta.degraded_keys.0', 'membership_tier')
             ->assertJsonPath('data.biz.account_profile.nickname', 'mini-dev')

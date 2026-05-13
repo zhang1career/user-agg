@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Queue\Failed;
+namespace App\Queue\failed;
 
 use DateTimeInterface;
 use Illuminate\Queue\Failed\DatabaseUuidFailedJobProvider;
 use Illuminate\Support\Facades\Date;
+use Throwable;
 
 class DatabaseUuidFailedJobProviderMillis extends DatabaseUuidFailedJobProvider
 {
@@ -14,10 +15,10 @@ class DatabaseUuidFailedJobProviderMillis extends DatabaseUuidFailedJobProvider
      * @param  string  $connection
      * @param  string  $queue
      * @param  string  $payload
-     * @param  \Throwable  $exception
+     * @param  Throwable  $exception
      * @return string|null
      */
-    public function log($connection, $queue, $payload, $exception)
+    public function log($connection, $queue, $payload, $exception): ?string
     {
         $this->getTable()->insert([
             'uuid' => $uuid = json_decode($payload, true)['uuid'],
@@ -37,7 +38,7 @@ class DatabaseUuidFailedJobProviderMillis extends DatabaseUuidFailedJobProvider
      * @param  int|null  $hours
      * @return void
      */
-    public function flush($hours = null)
+    public function flush($hours = null): void
     {
         $this->getTable()->when($hours, function ($query, $hours) {
             $beforeMs = (int) (Date::now()->subHours($hours)->getTimestamp() * 1000);
@@ -48,10 +49,10 @@ class DatabaseUuidFailedJobProviderMillis extends DatabaseUuidFailedJobProvider
     /**
      * Prune all of the entries older than the given date.
      *
-     * @param  \DateTimeInterface  $before
+     * @param DateTimeInterface $before
      * @return int
      */
-    public function prune(DateTimeInterface $before)
+    public function prune(DateTimeInterface $before): int
     {
         $beforeMs = (int) ($before->getTimestamp() * 1000);
         $query = $this->getTable()->where('failed_at', '<', $beforeMs);

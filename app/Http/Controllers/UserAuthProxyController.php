@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\User\UserFoundationAuthProxy;
+use App\Services\user\UserFoundationAuthProxy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -13,6 +13,16 @@ class UserAuthProxyController extends Controller
         $this->logHandledApiRequest($request, ['handler' => __FUNCTION__]);
 
         return $proxy->forwardRegister($request);
+    }
+
+    /**
+     * no_verify 注册后续：补发验证码；客户端须带 `X-User-Access-Token`（与下游一致）。
+     */
+    public function registerResumeRequest(Request $request, UserFoundationAuthProxy $proxy): Response
+    {
+        $this->logHandledApiRequest($request, ['handler' => __FUNCTION__]);
+
+        return $proxy->forwardRegisterResumeRequest($request);
     }
 
     public function registerVerify(Request $request, UserFoundationAuthProxy $proxy): Response

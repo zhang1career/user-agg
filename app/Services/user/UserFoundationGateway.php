@@ -1,21 +1,31 @@
 <?php
 
-namespace App\Services\User;
+declare(strict_types=1);
+
+namespace App\Services\user;
 
 use App\Exceptions\FoundationAuthRequiredException;
+use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Paganini\Aggregation\Exceptions\DownstreamServiceException;
+use JsonException;
 use Paganini\Aggregation\Support\DownstreamPayload;
 use RuntimeException;
 
-class UserFoundationGateway
+readonly class UserFoundationGateway
 {
     public function __construct(
-        private readonly ResolvedFoundationBaseUrl $resolvedFoundationBaseUrl,
+        private ResolvedFoundationBaseUrl $resolvedFoundationBaseUrl,
     ) {}
 
+    /**
+     * @throws FoundationAuthRequiredException
+     * @throws ConnectionException
+     * @throws BindingResolutionException
+     * @throws JsonException
+     */
     public function fetchCurrentUser(Request $request): array
     {
         $baseUrl = $this->resolvedFoundationBaseUrl->resolve();
@@ -39,14 +49,7 @@ class UserFoundationGateway
             throw new RuntimeException('Failed to fetch base user info from foundation service.');
         }
 
-        try {
-            return DownstreamPayload::extractData($response->json(), 'foundation user service');
-        } catch (DownstreamServiceException $e) {
-            if (str_contains(strtolower($e->getMessage()), 'login required')) {
-                throw new FoundationAuthRequiredException($e->getMessage(), 0, $e);
-            }
-            throw $e;
-        }
+        return DownstreamPayload::extractData($response->json(), 'foundation user service');
     }
 
     private function authRequiredFromHttpResponse(ClientResponse $response): FoundationAuthRequiredException

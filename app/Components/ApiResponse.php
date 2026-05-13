@@ -8,6 +8,7 @@ class ApiResponse
     /**
      * @param null $data
      * @param string $msg
+     * @param string $reqId
      * @return array
      */
     public static function ok($data = null, string $msg = '', string $reqId = ''): array
@@ -23,6 +24,7 @@ class ApiResponse
     /**
      * @param int $code
      * @param string $msg
+     * @param string $reqId
      * @return array
      */
     public static function error(int $code, string $msg, string $reqId = ''): array
@@ -39,6 +41,7 @@ class ApiResponse
      * @param mixed $data
      * @param int $code
      * @param string $msg
+     * @param string $reqId
      * @return array
      */
     public static function code(mixed $data, int $code, string $msg = '', string $reqId = ''): array

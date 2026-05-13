@@ -36,6 +36,68 @@ class UserAuthProxyControllerTest extends TestCase
         });
     }
 
+    public function test_register_forwards_no_verify_to_downstream(): void
+    {
+        config()->set('user_agg.foundation.base_url', 'http://foundation.local');
+        config()->set('user_agg.foundation.register_endpoint', '/api/user/register');
+
+        Http::fake([
+            'http://foundation.local/api/user/register' => Http::response(
+                '{"errorCode":0,"data":{"access_token":"tok-nv","refresh_token":"ref-nv","user":{"id":1}},"message":""}',
+                200,
+                ['Content-Type' => 'application/json']
+            ),
+        ]);
+
+        $response = $this->postJson('/api/user/register', [
+            'username' => 'u2',
+            'password' => 'p2',
+            'notice_channel' => 'email',
+            'notice_target' => 'u2@example.com',
+            'no_verify' => 1,
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.access_token', 'tok-nv');
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'http://foundation.local/api/user/register'
+                && $request->method() === 'POST'
+                && str_contains($request->body(), '"no_verify":1');
+        });
+    }
+
+    public function test_register_resume_request_forwards_to_foundation_with_access_token_header(): void
+    {
+        config()->set('user_agg.foundation.base_url', 'http://foundation.local');
+        config()->set('user_agg.foundation.register_request_endpoint', '/api/user/register/request');
+
+        Http::fake([
+            'http://foundation.local/api/user/register/request' => Http::response(
+                '{"errorCode":0,"data":{"event_id":9},"message":""}',
+                200,
+                ['Content-Type' => 'application/json']
+            ),
+        ]);
+
+        $response = $this->postJson(
+            '/api/user/register/request',
+            [
+                'notice_channel' => 'email',
+                'notice_target' => 'u1@example.com',
+            ],
+            ['X-User-Access-Token' => 'jwt-access-raw']
+        );
+
+        $response->assertOk()->assertJsonPath('data.event_id', 9);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'http://foundation.local/api/user/register/request'
+                && $request->method() === 'POST'
+                && $request->hasHeader('X-User-Access-Token', 'jwt-access-raw')
+                && str_contains($request->body(), '"notice_channel":"email"');
+        });
+    }
+
     public function test_register_verify_forwards_to_foundation_register_verify_endpoint(): void
     {
         config()->set('user_agg.foundation.base_url', 'http://foundation.local');

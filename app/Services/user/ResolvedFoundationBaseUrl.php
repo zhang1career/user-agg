@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services\User;
+namespace App\Services\user;
 
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Foundation\Application;
+use JsonException;
 use Paganini\Memo\CacheKeyGenerator;
 use Paganini\Memo\Memoizer;
 use Paganini\ServiceDiscovery\Contracts\ServiceUriResolverInterface;
@@ -17,16 +19,17 @@ use Paganini\ServiceDiscovery\ServiceUrlSpecifier;
  * Memoizes resolved URLs to avoid Redis on every request (TTL from config).
  * {@see ServiceUriResolverInterface} is resolved only when the template contains `://{{` (lazy), so plain URLs never open Redis.
  */
-final class ResolvedFoundationBaseUrl
+final readonly class ResolvedFoundationBaseUrl
 {
     public function __construct(
-        private readonly Application $app,
-        private readonly Memoizer $memoizer,
-        private readonly int $memoTtlSeconds,
+        private Application $app,
+        private Memoizer    $memoizer,
+        private int         $memoTtlSeconds,
     ) {}
 
     /**
      * Trimmed base URL, or empty string if unset.
+     * @throws JsonException|BindingResolutionException
      */
     public function resolve(): string
     {
@@ -46,8 +49,7 @@ final class ResolvedFoundationBaseUrl
                 $this->memoTtlSeconds,
                 fn (): string => ServiceUrlSpecifier::specifyHost(
                     $raw,
-                    $this->app->make(ServiceUriResolverInterface::class),
-                    null
+                    $this->app->make(ServiceUriResolverInterface::class)
                 )
             ),
             '/'

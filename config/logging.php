@@ -9,7 +9,7 @@ use Monolog\Processor\PsrLogMessageProcessor;
 $defaultFileLogFormatter = [
     'formatter' => LineFormatter::class,
     'formatter_with' => [
-        'format' => "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
+        'format' => "[%level_name%] %datetime% [%extra.x_request_id%] %message% %context%\n",
         'dateFormat' => 'Y-m-d H:i:s',
         'allowInlineLineBreaks' => false,
         'ignoreEmptyContextAndExtra' => true,
@@ -70,15 +70,16 @@ return [
         ],
 
         'single' => array_merge([
-            'driver' => 'single',
-            'path' => '/var/log/project/user-agg/app.log',
+            'driver' => 'app_today',
+            'path' => env('LOG_APP_PATH', storage_path('logs/app.log')),
+            'days' => env('LOG_DAILY_DAYS', 7),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ], $defaultFileLogFormatter),
 
         'daily' => array_merge([
-            'driver' => 'daily',
-            'path' => '/var/log/project/user-agg/app.log',
+            'driver' => 'app_today',
+            'path' => env('LOG_APP_PATH', storage_path('logs/app.log')),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 7),
             'replace_placeholders' => true,
@@ -100,7 +101,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],

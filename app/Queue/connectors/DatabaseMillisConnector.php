@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Queue\Connectors;
+namespace App\Queue\connectors;
 
 use App\Queue\DatabaseQueueMillis;
+use Illuminate\Contracts\Queue\Queue;
 use Illuminate\Queue\Connectors\DatabaseConnector;
-use Illuminate\Database\ConnectionResolverInterface;
 
 class DatabaseMillisConnector extends DatabaseConnector
 {
     /**
      * Establish a queue connection.
      *
-     * @param  array  $config
-     * @return \Illuminate\Contracts\Queue\Queue
+     * @param array $config
+     * @return Queue|DatabaseQueueMillis
      */
-    public function connect(array $config)
+    public function connect(array $config): Queue|DatabaseQueueMillis
     {
         return new DatabaseQueueMillis(
             $this->connections->connection($config['connection'] ?? null),
